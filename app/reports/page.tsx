@@ -8,11 +8,12 @@ import { AuthGuard, SignOutButton } from "../components/AuthGuard";
 
 type Role = "app_master" | "hr_admin" | "hr_scanner";
 
-type ActiveSession = {
+type SessionRow = {
   session_id: string;
   event_name: string;
+  status: "active" | "ended";
   started_at: string;
-  ended_at?: string | null;
+  ended_at: string | null;
 };
 
 type OfficeStat = {
@@ -71,55 +72,82 @@ function monthKey(d: Date) {
 }
 
 function monthStartISOFromKey(key: string) {
-  // key: YYYY-MM
   return `${key}-01T00:00:00.000Z`;
 }
 
 function monthEndISOFromKey(key: string) {
   const [yStr, mStr] = key.split("-");
   const y = Number(yStr);
-  const m = Number(mStr); // 1..12
-  const start = new Date(Date.UTC(y, m - 1, 1));
+  const m = Number(mStr);
   const end = new Date(Date.UTC(y, m, 1)); // next month 1st day
   return end.toISOString();
 }
 
 function ReportsInner() {
   const [role, setRole] = useState<Role | "">("");
-  const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [monthlyLoading, setMonthlyLoading] = useState(false);
+
+  const [sessions, setSessions] = useState<SessionRow[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState<string>("");
+
+  const [exportLoading, setExportLoading] = useState(false);
 
   const defaultMonth = useMemo(() => monthKey(new Date()), []);
   const [selectedMonth, setSelectedMonth] = useState<string>(defaultMonth);
+  const [monthlyLoading, setMonthlyLoading] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setRole((data.session?.user?.user_metadata?.role ?? "") as Role | "");
     });
-    refreshActiveSession();
+    refreshSessions();
   }, []);
 
-  async function refreshActiveSession() {
-    const { data } = await supabase
+  async function refreshSessions() {
+    const { data, error } = await supabase
       .from("sessions")
-      .select("session_id,event_name,started_at,ended_at")
-      .eq("status", "active")
-      .maybeSingle();
+      .select("session_id,event_name,status,started_at,ended_at")
+      .order("started_at", { ascending: false })
+      .limit(50);
 
-    setActiveSession((data as any) ?? null);
+    if (error) {
+      alert(`Failed to load sessions: ${error.message}`);
+      return;
+    }
+
+    const list = (data as any as SessionRow[]) ?? [];
+    setSessions(list);
+
+    // Default selection: active session if present, else most recent ended
+    const active = list.find((s) => s.status === "active");
+    if (active) setSelectedSessionId(active.session_id);
+    else if (list[0]) setSelectedSessionId(list[0].session_id);
   }
 
-  async function exportCurrentSession() {
-    if (!activeSession) return;
+  const selectedSession = useMemo(
+    () => sessions.find((s) => s.session_id === selectedSessionId) ?? null,
+    [sessions, selectedSessionId]
+  );
 
-    setLoading(true);
+  async function exportSelectedSession() {
+    if (!selectedSession) {
+      alert("Please select a session first.");
+      return;
+    }
+
+    setExportLoading(true);
     try {
-      // Office summary (per current session)
-      const { data: officeStats } = await supabase
+      const session_id = selectedSession.session_id;
+
+      // Office summary
+      const { data: officeStats, error: osErr } = await supabase
         .from("v_office_stats")
         .select("*")
-        .eq("session_id", activeSession.session_id);
+        .eq("session_id", session_id);
+
+      if (osErr) {
+        alert(`Office stats load failed: ${osErr.message}`);
+        return;
+      }
 
       const sorted = (officeStats as OfficeStat[]).slice().sort(
         (a, b) => b.dept_rate - a.dept_rate || b.dept_present - a.dept_present
@@ -129,7 +157,7 @@ function ReportsInner() {
       const { data: raw, error: rawErr } = await supabase
         .from("v_session_raw_attendance")
         .select("employee_id,full_name,department,method,recorded_at")
-        .eq("session_id", activeSession.session_id);
+        .eq("session_id", session_id);
 
       if (rawErr) {
         alert(`Raw export failed: ${rawErr.message}`);
@@ -138,13 +166,16 @@ function ReportsInner() {
 
       const wb = new ExcelJS.Workbook();
 
-      // Sheet 1
+      // Sheet 1: Summary
       const s1 = wb.addWorksheet("Summary");
+
       s1.addRows([
-        ["Event", activeSession.event_name],
-        ["Session started", formatPH(activeSession.started_at)],
-        ["Session ended", formatPH(activeSession.ended_at)],
-        ["Duration", duration(activeSession.started_at, activeSession.ended_at)],
+        ["Event", selectedSession.event_name],
+        ["Session started", formatPH(selectedSession.started_at)],
+        ["Session ended", formatPH(selectedSession.ended_at)],
+        ["Duration", duration(selectedSession.started_at, selectedSession.ended_at)],
+        ["Session ID", selectedSession.session_id],
+        ["Status", selectedSession.status],
         [],
         ["Department", "Present", "Total", "Rate (%)"],
       ]);
@@ -153,9 +184,9 @@ function ReportsInner() {
         s1.addRow([d.department, d.dept_present, d.dept_total, d.dept_rate]);
       });
 
-      s1.columns.forEach((c) => (c.width = 22));
+      s1.columns.forEach((c) => (c.width = 24));
 
-      // Sheet 2
+      // Sheet 2: Raw Attendance
       const s2 = wb.addWorksheet("Raw Attendance");
       s2.addRow(["Employee ID", "Full Name", "Department", "Method", "Recorded At (PH)"]);
       raw?.forEach((r: any) => {
@@ -168,13 +199,12 @@ function ReportsInner() {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
 
-      const fname = `Attendance_${activeSession.event_name.replace(/\s+/g, "_")}_${new Date()
-        .toISOString()
-        .slice(0, 10)}.xlsx`;
+      const dateTag = (selectedSession.started_at || new Date().toISOString()).slice(0, 10);
+      const fname = `Attendance_${selectedSession.event_name.replace(/\s+/g, "_")}_${dateTag}.xlsx`;
 
       saveAs(blob, fname);
     } finally {
-      setLoading(false);
+      setExportLoading(false);
     }
   }
 
@@ -184,7 +214,7 @@ function ReportsInner() {
       const start = monthStartISOFromKey(selectedMonth);
       const end = monthEndISOFromKey(selectedMonth);
 
-      // Monthly office summary from view
+      // Monthly office summary (view)
       const { data: monthly, error: mErr } = await supabase
         .from("v_monthly_office_summary")
         .select("month_start,department,dept_total,dept_present,dept_rate")
@@ -200,9 +230,8 @@ function ReportsInner() {
         .slice()
         .sort((a, b) => b.dept_rate - a.dept_rate || b.dept_present - a.dept_present);
 
-      // Session-by-session department stats for the month
-      // We compute this live using v_attendance_enriched + active employee totals.
-      const { data: sessions, error: sErr } = await supabase
+      // Sessions in the month
+      const { data: ses, error: sErr } = await supabase
         .from("sessions")
         .select("session_id,event_name,started_at")
         .gte("started_at", start)
@@ -214,7 +243,7 @@ function ReportsInner() {
         return;
       }
 
-      // Get active employee totals by department
+      // Active employee totals by department
       const { data: totals, error: tErr } = await supabase
         .from("employees")
         .select("department")
@@ -227,15 +256,12 @@ function ReportsInner() {
 
       const deptTotalsMap: Record<string, number> = {};
       (totals as any[]).forEach((r) => {
-        const d = r.department;
-        deptTotalsMap[d] = (deptTotalsMap[d] ?? 0) + 1;
+        deptTotalsMap[r.department] = (deptTotalsMap[r.department] ?? 0) + 1;
       });
 
-      // Pull attendance for those sessions (employee_id distinct per session counts)
-      const sessionIds = (sessions as any[]).map((s) => s.session_id);
+      const sessionIds = (ses as any[]).map((s) => s.session_id);
       let enriched: any[] = [];
       if (sessionIds.length) {
-        // Note: IN filter limited but fine for typical monthly (4+ sessions)
         const { data: enr, error: eErr } = await supabase
           .from("v_attendance_enriched")
           .select("session_id,event_name,started_at,employee_id,department")
@@ -248,7 +274,6 @@ function ReportsInner() {
         enriched = (enr as any[]) ?? [];
       }
 
-      // Compute session office rows
       const bySessionDept: Record<string, { [dept: string]: Set<string> }> = {};
       enriched.forEach((r) => {
         const sid = r.session_id;
@@ -260,7 +285,7 @@ function ReportsInner() {
       });
 
       const sessionOfficeRows: SessionOfficeRow[] = [];
-      (sessions as any[]).forEach((s) => {
+      (ses as any[]).forEach((s) => {
         const sid = s.session_id;
         const started = s.started_at;
         const ev = s.event_name;
@@ -286,54 +311,29 @@ function ReportsInner() {
         });
       });
 
-      // Excel workbook
       const wb = new ExcelJS.Workbook();
 
-      // Sheet 1: Monthly Summary
       const s1 = wb.addWorksheet("Monthly Summary");
       s1.addRow(["Month", selectedMonth]);
       s1.addRow([]);
       s1.addRow(["Department", "Present (unique)", "Total", "Rate (%)"]);
-
       monthlySorted.forEach((d) => {
         s1.addRow([d.department, d.dept_present, d.dept_total, d.dept_rate]);
       });
-
       s1.columns.forEach((c) => (c.width = 24));
 
-      // Sheet 2: Sessions Breakdown
       const s2 = wb.addWorksheet("Sessions Breakdown");
-      s2.addRow([
-        "Session Date (PH)",
-        "Event Name",
-        "Session ID",
-        "Department",
-        "Present",
-        "Total",
-        "Rate (%)",
-      ]);
-
+      s2.addRow(["Session Date (PH)", "Event Name", "Session ID", "Department", "Present", "Total", "Rate (%)"]);
       sessionOfficeRows.forEach((r) => {
-        s2.addRow([
-          formatPH(r.started_at),
-          r.event_name,
-          r.session_id,
-          r.department,
-          r.dept_present,
-          r.dept_total,
-          r.dept_rate,
-        ]);
+        s2.addRow([formatPH(r.started_at), r.event_name, r.session_id, r.department, r.dept_present, r.dept_total, r.dept_rate]);
       });
-
       s2.columns.forEach((c) => (c.width = 24));
 
       const buf = await wb.xlsx.writeBuffer();
       const blob = new Blob([buf], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
-
-      const fname = `Monthly_Trend_${selectedMonth}.xlsx`;
-      saveAs(blob, fname);
+      saveAs(blob, `Monthly_Trend_${selectedMonth}.xlsx`);
     } finally {
       setMonthlyLoading(false);
     }
@@ -348,9 +348,7 @@ function ReportsInner() {
         <a className="sidebar-link" href="/scanner">Scanner</a>
         <a className="sidebar-link active" href="/reports">Reports</a>
 
-        {role === "app_master" && (
-          <a className="sidebar-link" href="/masterlist">Masterlist</a>
-        )}
+        {role === "app_master" && <a className="sidebar-link" href="/masterlist">Masterlist</a>}
 
         <div style={{ height: 10 }} />
         <SignOutButton />
@@ -360,29 +358,53 @@ function ReportsInner() {
         <div className="content-header">
           <div>
             <div className="page-title">Reports</div>
-            <div className="page-subtitle">Export current session and monthly trends.</div>
+            <div className="page-subtitle">Export any session and monthly trends.</div>
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-          {/* Current session export */}
+        <div style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: 16 }}>
+          {/* Past/Current session export */}
           <div className="card">
-            <div className="card-title">Current session</div>
-            <div className="card-subtitle">Excel export (Summary + Raw).</div>
+            <div className="card-title">Session export</div>
+            <div className="card-subtitle">
+              Select a session (active or ended) then export Excel (Summary + Raw).
+            </div>
+
+            <div className="field">
+              <label className="label">Select session</label>
+              <select
+                className="input"
+                value={selectedSessionId}
+                onChange={(e) => setSelectedSessionId(e.target.value)}
+              >
+                {sessions.map((s) => (
+                  <option key={s.session_id} value={s.session_id}>
+                    {s.status === "active" ? "[ACTIVE] " : ""}
+                    {formatPH(s.started_at)} — {s.event_name} ({s.session_id})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {selectedSession && (
+              <div className="hint" style={{ marginBottom: 12 }}>
+                <b>{selectedSession.event_name}</b> • {formatPH(selectedSession.started_at)} •{" "}
+                {selectedSession.status.toUpperCase()}
+              </div>
+            )}
 
             <button
               className="btn btn-orange"
-              disabled={!activeSession || loading}
-              onClick={exportCurrentSession}
+              disabled={!selectedSession || exportLoading}
+              onClick={exportSelectedSession}
             >
-              {loading ? "Exporting..." : "Export current session (Excel)"}
+              {exportLoading ? "Exporting..." : "Export selected session (Excel)"}
             </button>
 
-            {!activeSession && (
-              <div className="hint" style={{ marginTop: 10 }}>
-                No active session to export.
-              </div>
-            )}
+            <div style={{ height: 10 }} />
+            <button className="btn btn-grey" onClick={refreshSessions}>
+              Refresh sessions list
+            </button>
           </div>
 
           {/* Monthly trend export */}
@@ -402,11 +424,7 @@ function ReportsInner() {
               />
             </div>
 
-            <button
-              className="btn btn-grey"
-              disabled={monthlyLoading}
-              onClick={exportMonthlyTrend}
-            >
+            <button className="btn btn-grey" disabled={monthlyLoading} onClick={exportMonthlyTrend}>
               {monthlyLoading ? "Generating..." : "Export monthly trend (Excel)"}
             </button>
 
