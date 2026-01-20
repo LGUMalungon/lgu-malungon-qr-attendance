@@ -94,7 +94,7 @@ function MasterlistInner() {
   const [previewRows, setPreviewRows] = useState<any[]>([]);
   const [validRows, setValidRows] = useState<any[]>([]);
   const [uploadHistory, setUploadHistory] = useState<UploadRow[]>([]);
-const [successMsg, setSuccessMsg] = useState<string>("");
+  const [successMsg, setSuccessMsg] = useState<string>("");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -110,7 +110,6 @@ const [successMsg, setSuccessMsg] = useState<string>("");
       .order("uploaded_at", { ascending: false });
 
     if (error) {
-      // Don’t block the page; just show hint in console.
       console.warn("Failed to load masterlist history:", error.message);
       return;
     }
@@ -125,6 +124,7 @@ const [successMsg, setSuccessMsg] = useState<string>("");
     setErrors([]);
     setPreviewRows([]);
     setValidRows([]);
+    setSuccessMsg("");
 
     if (!f) return;
 
@@ -169,12 +169,13 @@ const [successMsg, setSuccessMsg] = useState<string>("");
       if (!p.employee_id) rowErrors.push(`Line ${line}: employee_id is blank.`);
       if (!p.full_name) rowErrors.push(`Line ${line}: full_name is blank.`);
       if (!p.department) rowErrors.push(`Line ${line}: department is blank.`);
-      
+
+      // Accepts CEW-763, COS-371, MO-01, etc.
       if (p.employee_id && !/^[A-Z]{1,5}-\d+$/.test(p.employee_id)) {
-  rowErrors.push(
-    `Line ${line}: employee_id "${p.employee_id}" must look like ABC-123.`
-  );
-}
+        rowErrors.push(
+          `Line ${line}: employee_id "${p.employee_id}" must look like ABC-123.`
+        );
+      }
 
       if (p.employee_id && p.full_name && p.department) valid.push(p);
     });
@@ -202,14 +203,27 @@ const [successMsg, setSuccessMsg] = useState<string>("");
     }
 
     setBusy(true);
+    setSuccessMsg("");
     try {
-      // Upsert employees by employee_id
-      const { error } = await supabase
+      // ✅ IMPORTANT: Make latest upload the ONLY active masterlist
+      // Step A) deactivate everyone first (so old masterlist won't show in stats)
+      const { error: deactErr } = await supabase
+        .from("employees")
+        .update({ is_active: false })
+        .neq("employee_id", ""); // "update all" safety
+
+      if (deactErr) {
+        alert(`Failed to prepare masterlist (deactivate old): ${deactErr.message}`);
+        return;
+      }
+
+      // Step B) upsert new employees (these become the only active ones)
+      const { error: upErr } = await supabase
         .from("employees")
         .upsert(validRows, { onConflict: "employee_id" });
 
-      if (error) {
-        alert(`Upload failed: ${error.message}`);
+      if (upErr) {
+        alert(`Upload failed: ${upErr.message}`);
         return;
       }
 
@@ -227,15 +241,16 @@ const [successMsg, setSuccessMsg] = useState<string>("");
       ]);
 
       if (logErr) {
-        // Upload succeeded; only logging failed
-        alert(`Uploaded employees, but failed to log filename: ${logErr.message}`);
+        alert(
+          `Uploaded employees, but failed to log filename: ${logErr.message}`
+        );
       } else {
         setSuccessMsg(`Masterlist uploaded successfully: ${validRows.length} rows.`);
-
       }
 
-      // Refresh list + clear UI
       await refreshHistory();
+
+      // Clear UI
       setFile(null);
       setPreviewRows([]);
       setValidRows([]);
@@ -294,30 +309,36 @@ const [successMsg, setSuccessMsg] = useState<string>("");
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: 16 }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1.1fr 0.9fr",
+            gap: 16,
+          }}
+        >
           {/* Upload card */}
           <div className="card">
             <div className="card-title">Upload CSV</div>
             <div className="card-subtitle">
               Required: <b>employee_id</b>, <b>full_name</b>, <b>department</b>.
-              Optional: <b>is_active</b>. employee_id must look like <b>EMP-001</b>.
-            {successMsg && (
-  <div
-    style={{
-      marginTop: 10,
-      marginBottom: 12,
-      padding: 12,
-      borderRadius: 12,
-      background: "rgba(22,163,74,0.12)",
-      border: "1px solid rgba(22,163,74,0.25)",
-      fontWeight: 900,
-    }}
-  >
-    {successMsg}
-  </div>
-)}
-
+              Optional: <b>is_active</b>. employee_id must look like <b>ABC-123</b>.
             </div>
+
+            {successMsg && (
+              <div
+                style={{
+                  marginTop: 10,
+                  marginBottom: 12,
+                  padding: 12,
+                  borderRadius: 12,
+                  background: "rgba(22,163,74,0.12)",
+                  border: "1px solid rgba(22,163,74,0.25)",
+                  fontWeight: 900,
+                }}
+              >
+                {successMsg}
+              </div>
+            )}
 
             <input
               id="ml-file"
@@ -329,7 +350,11 @@ const [successMsg, setSuccessMsg] = useState<string>("");
 
             <div style={{ height: 12 }} />
 
-            <button className="btn btn-orange" onClick={uploadToDatabase} disabled={busy}>
+            <button
+              className="btn btn-orange"
+              onClick={uploadToDatabase}
+              disabled={busy}
+            >
               {busy ? "Uploading..." : "Upload to database"}
             </button>
 
@@ -421,7 +446,14 @@ const [successMsg, setSuccessMsg] = useState<string>("");
               Newest at the top. This helps trace which masterlist is being used.
             </div>
 
-            <div style={{ marginTop: 10, maxHeight: 520, overflow: "auto", paddingRight: 4 }}>
+            <div
+              style={{
+                marginTop: 10,
+                maxHeight: 520,
+                overflow: "auto",
+                paddingRight: 4,
+              }}
+            >
               {uploadHistory.length === 0 ? (
                 <div className="hint">No masterlist uploads yet.</div>
               ) : (
@@ -433,8 +465,7 @@ const [successMsg, setSuccessMsg] = useState<string>("");
                       borderRadius: 14,
                       padding: 12,
                       marginBottom: 10,
-                      background:
-                        idx === 0 ? "rgba(249,115,22,0.10)" : "white",
+                      background: idx === 0 ? "rgba(249,115,22,0.10)" : "white",
                     }}
                   >
                     <div style={{ fontWeight: 900 }}>
