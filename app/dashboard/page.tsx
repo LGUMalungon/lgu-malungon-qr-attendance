@@ -279,7 +279,6 @@ function DashboardInner() {
             <div className="page-subtitle">Session control and live stats.</div>
           </div>
 
-          {/* ✅ SESSION INDICATOR: pill + bold line, no UUID */}
           <div className="session-indicator">
             {!activeSession ? (
               <>
@@ -298,16 +297,7 @@ function DashboardInner() {
                   ACTIVE SESSION
                 </div>
 
-                {/* ✅ Bold but NOT too big */}
-                <div
-                  style={{
-                    marginTop: 8,
-                    fontSize: 13,
-                    fontWeight: 900,
-                    color: "#111827",
-                    letterSpacing: "0.1px",
-                  }}
-                >
+                <div className="session-when">
                   {activeSession.event_name} • {formatPH(activeSession.started_at)}
                 </div>
               </>
@@ -315,49 +305,64 @@ function DashboardInner() {
           </div>
         </div>
 
-        {/* 2-column layout: Session control (left) + Live stats (right, wide) */}
         <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "280px 1fr",
-            gap: 16,
-          }}
-        >
-          {/* Session control */}
+  style={{
+    display: "grid",
+    gridTemplateColumns: "1fr",
+    gap: 16,
+  }}
+>
+
           <div className="card">
             <div className="card-title">Session control</div>
             <div className="card-subtitle">
               Event name is required before starting.
             </div>
 
-            <div className="field">
-              <label className="label">Event name</label>
-              <input
-                className="input"
-                placeholder="e.g., Flag Ceremony"
-                value={eventName}
-                onChange={(e) => setEventName(e.target.value)}
-                disabled={!!activeSession || loading}
-              />
-            </div>
+            <div
+  style={{
+    display: "grid",
+    gridTemplateColumns: "2fr 1fr 1fr",
+    gap: 10,
+    alignItems: "end",
+  }}
+>
+  {/* Event name */}
+  <div>
+    <label className="label">Event name</label>
+    <input
+      className="input"
+      placeholder="e.g., Flag Ceremony"
+      value={eventName}
+      onChange={(e) => setEventName(e.target.value)}
+      disabled={!!activeSession || loading}
+    />
+  </div>
 
-            <div className="button-row">
-              <button
-                className="btn btn-blue"
-                onClick={startSession}
-                disabled={!canStart}
-              >
-                {loading ? "Working..." : "Start session"}
-              </button>
+  {/* Start */}
+  <button
+    className="btn btn-blue"
+    onClick={startSession}
+    disabled={!canStart}
+    style={{ height: 42 }}
+  >
+    {loading ? "Working..." : "Start session"}
+  </button>
 
-              <button
-                className="btn btn-red"
-                onClick={endSession}
-                disabled={!canEnd}
-              >
-                {loading ? "Working..." : "End session"}
-              </button>
-            </div>
+  {/* End */}
+  <button
+    className="btn btn-red"
+    onClick={endSession}
+    disabled={!canEnd}
+    style={{ height: 42 }}
+  >
+    {loading ? "Working..." : "End session"}
+  </button>
+</div>
+
+
+            
+
 
             <div style={{ height: 10 }} />
             <div className="hint">
@@ -365,198 +370,186 @@ function DashboardInner() {
             </div>
           </div>
 
-          {/* Live stats (wide) */}
+
           <div className="card">
             <div className="card-title">Real-time attendance stats</div>
             <div className="card-subtitle">
               LGU totals + department performance (sorted high → low).
             </div>
 
+            
+
+            <div style={{ display: "grid", gap: 14 }}>
+  {/* KPI CARD (TOP) */}
+  <div
+    style={{
+      border: "1px solid rgba(0,0,0,0.08)",
+      borderRadius: 16,
+      padding: 14,
+      background: "rgba(255,255,255,0.9)",
+      boxShadow: "0 10px 22px rgba(0,0,0,0.06)",
+    }}
+  >
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "1.2fr 1.1fr 0.85fr 0.85fr",
+        gap: 12,
+        alignItems: "stretch",
+      }}
+    >
+      {/* 1) Present / Total */}
+      <div
+        style={{
+          borderRadius: 14,
+          border: "1px solid rgba(0,0,0,0.08)",
+          padding: 12,
+        }}
+      >
+        <div style={{ fontSize: 12, fontWeight: 900, color: "#6b7280" }}>
+          Present / Total
+        </div>
+        <div style={{ marginTop: 6, fontSize: 26, fontWeight: 1000, color: "#111827" }}>
+          {stats.present_total} <span style={{ fontSize: 14, fontWeight: 900, color: "#6b7280" }}>/ {stats.lgu_total}</span>
+        </div>
+      </div>
+
+      {/* 2) Attendance rate */}
+      <div
+        style={{
+          borderRadius: 14,
+          border: "1px solid rgba(0,0,0,0.08)",
+          padding: 12,
+        }}
+      >
+        <div style={{ fontSize: 12, fontWeight: 900, color: "#6b7280" }}>
+          Attendance rate
+        </div>
+        <div style={{ marginTop: 6, fontSize: 26, fontWeight: 1000, color: "#111827" }}>
+          {attRate}%
+        </div>
+      </div>
+
+      {/* 3) Scanned in (smaller) */}
+      <div
+        style={{
+          borderRadius: 14,
+          border: "1px solid rgba(22,163,74,0.28)",
+          background: "rgba(22,163,74,0.10)",
+          padding: 12,
+        }}
+      >
+        <div style={{ fontSize: 12, fontWeight: 900, color: "#065f46" }}>
+          Scanned in
+        </div>
+        <div style={{ marginTop: 6, fontSize: 22, fontWeight: 1000, color: "#065f46" }}>
+          {stats.scanned_total}
+        </div>
+      </div>
+
+      {/* 4) Manual entry (smaller) */}
+      <div
+        style={{
+          borderRadius: 14,
+          border: "1px solid rgba(37,99,235,0.25)",
+          background: "rgba(37,99,235,0.08)",
+          padding: 12,
+        }}
+      >
+        <div style={{ fontSize: 12, fontWeight: 900, color: "#1d4ed8" }}>
+          Manual entry
+        </div>
+        <div style={{ marginTop: 6, fontSize: 22, fontWeight: 1000, color: "#1d4ed8" }}>
+          {stats.manual_total}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {/* DEPARTMENT PERFORMANCE CARD (BOTTOM) */}
+  <div
+    style={{
+      border: "1px solid rgba(0,0,0,0.08)",
+      borderRadius: 16,
+      padding: 14,
+      background: "rgba(255,255,255,0.9)",
+      boxShadow: "0 10px 22px rgba(0,0,0,0.06)",
+    }}
+  >
+    <div style={{ fontWeight: 1000, marginBottom: 10, color: "#111827" }}>
+      Department performance
+    </div>
+
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "1.8fr 120px 70px",
+        gap: 10,
+        fontSize: 12,
+        fontWeight: 900,
+        color: "#6b7280",
+        marginBottom: 8,
+      }}
+    >
+      <div>Department</div>
+      <div>Present/Total</div>
+      <div>Rate</div>
+    </div>
+
+    <div style={{ maxHeight: 420, overflow: "auto", paddingRight: 4 }}>
+      {officeStats.map((d) => (
+        <div key={d.department} style={{ marginBottom: 12 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1.8fr 120px 70px",
+              gap: 10,
+              alignItems: "center",
+            }}
+          >
+            <div style={{ fontWeight: 900 }}>{d.department}</div>
+            <div style={{ fontSize: 12, color: "#374151", fontWeight: 900 }}>
+              {d.dept_present}/{d.dept_total}
+            </div>
+            <div style={{ fontSize: 12, color: "#374151", fontWeight: 900 }}>
+              {d.dept_rate}%
+            </div>
+          </div>
+
+          <div
+            style={{
+              position: "relative",
+              height: 10,
+              borderRadius: 999,
+              background: "rgba(0,0,0,0.06)",
+              overflow: "hidden",
+              marginTop: 6,
+            }}
+          >
             <div
               style={{
-                display: "grid",
-                gridTemplateColumns: "160px 1fr",
-                gap: 14,
+                height: "100%",
+                width: `${Math.min(100, Math.max(0, d.dept_rate))}%`,
+                background: "rgba(249,115,22,0.85)",
               }}
-            >
-              {/* Narrow LGU column */}
-              <div
-                style={{
-                  border: "1px solid rgba(0,0,0,0.08)",
-                  borderRadius: 14,
-                  padding: 12,
-                }}
-              >
-                <div style={{ fontWeight: 900, fontSize: 18 }}>
-                  {stats.present_total} / {stats.lgu_total}
-                </div>
+            />
+          </div>
+        </div>
+      ))}
 
-                <div style={{ height: 10 }} />
+      {activeSession && officeStats.length === 0 && (
+        <div className="hint">No department data yet.</div>
+      )}
 
-                <div
-                  style={{
-                    fontWeight: 900,
-                    fontSize: 12,
-                    color: "#6b7280",
-                  }}
-                >
-                  Attendance rate:
-                </div>
-                <div style={{ fontWeight: 900, fontSize: 30 }}>
-                  {attRate}%
-                </div>
+      {!activeSession && (
+        <div className="hint">Start a session to see live stats.</div>
+      )}
+    </div>
+  </div>
+</div>
 
-                <div style={{ height: 12 }} />
 
-                <div
-                  style={{
-                    background: "rgba(22,163,74,0.12)",
-                    border: "1px solid rgba(22,163,74,0.25)",
-                    borderRadius: 12,
-                    padding: "8px 10px",
-                    marginBottom: 8,
-                  }}
-                >
-                  <div style={{ fontWeight: 900, fontSize: 12 }}>
-                    Scanned in
-                  </div>
-                  <div style={{ fontWeight: 900, fontSize: 18 }}>
-                    {stats.scanned_total}
-                  </div>
-                </div>
 
-                <div
-                  style={{
-                    background: "rgba(37,99,235,0.10)",
-                    border: "1px solid rgba(37,99,235,0.25)",
-                    borderRadius: 12,
-                    padding: "8px 10px",
-                  }}
-                >
-                  <div style={{ fontWeight: 900, fontSize: 12 }}>
-                    Manual entry
-                  </div>
-                  <div style={{ fontWeight: 900, fontSize: 18 }}>
-                    {stats.manual_total}
-                  </div>
-                </div>
-              </div>
-
-              {/* Wide department column */}
-              <div
-                style={{
-                  border: "1px solid rgba(0,0,0,0.08)",
-                  borderRadius: 14,
-                  padding: 12,
-                }}
-              >
-                <div style={{ fontWeight: 900, marginBottom: 8 }}>
-                  Department performance
-                </div>
-
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1.8fr 120px 70px",
-                    gap: 10,
-                    fontSize: 12,
-                    fontWeight: 900,
-                    color: "#6b7280",
-                    marginBottom: 6,
-                  }}
-                >
-                  <div>Department</div>
-                  <div>Present/Total</div>
-                  <div>Rate</div>
-                </div>
-
-                <div
-                  style={{
-                    maxHeight: 420,
-                    overflow: "auto",
-                    paddingRight: 4,
-                  }}
-                >
-                  {officeStats.map((d) => {
-                    const label = `${d.dept_present}/${d.dept_total} • ${d.dept_rate}%`;
-                    return (
-                      <div key={d.department} style={{ marginBottom: 12 }}>
-                        <div
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "1.8fr 120px 70px",
-                            gap: 10,
-                            alignItems: "center",
-                          }}
-                        >
-                          <div style={{ fontWeight: 900 }}>{d.department}</div>
-                          <div
-                            style={{
-                              fontSize: 12,
-                              color: "#374151",
-                              fontWeight: 900,
-                            }}
-                          >
-                            {d.dept_present}/{d.dept_total}
-                          </div>
-                          <div
-                            style={{
-                              fontSize: 12,
-                              color: "#374151",
-                              fontWeight: 900,
-                            }}
-                          >
-                            {d.dept_rate}%
-                          </div>
-                        </div>
-
-                        <div
-                          style={{
-                            position: "relative",
-                            height: 10,
-                            borderRadius: 999,
-                            background: "rgba(0,0,0,0.06)",
-                            overflow: "hidden",
-                            marginTop: 6,
-                          }}
-                        >
-                          <div
-                            style={{
-                              height: "100%",
-                              width: `${Math.min(
-                                100,
-                                Math.max(0, d.dept_rate)
-                              )}%`,
-                              background: "rgba(249,115,22,0.85)",
-                            }}
-                          />
-                          <div
-                            style={{
-                              position: "absolute",
-                              left: 10,
-                              top: -16,
-                              fontSize: 11,
-                              fontWeight: 900,
-                              color: "#6b7280",
-                            }}
-                          >
-                            {label}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-
-                  {activeSession && officeStats.length === 0 && (
-                    <div className="hint">No department data yet.</div>
-                  )}
-
-                  {!activeSession && (
-                    <div className="hint">Start a session to see live stats.</div>
-                  )}
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </section>

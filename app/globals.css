@@ -779,3 +779,56 @@ button, input { font-family: inherit; }
   .rt-wrap{ grid-template-columns: 1fr; }
 }
 
+
+.rt-kpi-row{
+  display:grid;
+  grid-template-columns: 1.2fr 1.2fr 0.8fr 0.8fr;
+  gap:14px;
+}
+
+.rt-kpi-box{
+  border-radius:14px;
+  padding:14px 16px;
+  background:#ffffff;
+  border:1px solid rgba(17,24,39,0.10);
+  box-shadow:0 10px 22px rgba(0,0,0,0.06);
+}
+
+.rt-kpi-box.primary{
+  background:
+    radial-gradient(600px 200px at 20% 0%, rgba(249,115,22,0.14), rgba(255,255,255,0)),
+    #ffffff;
+}
+
+.rt-kpi-box.minor{ background:#f9fafb; }
+.rt-kpi-box.green{ border-color: rgba(22,163,74,0.35); }
+.rt-kpi-box.blue{ border-color: rgba(37,99,235,0.35); }
+
+.rt-kpi-label{
+  font-size:12px;
+  font-weight:900;
+  letter-spacing:0.08em;
+  color:#6b7280;
+  text-transform:uppercase;
+  margin-bottom:6px;
+}
+
+.rt-kpi-value{
+  font-size:34px;
+  font-weight:1000;
+  line-height:1;
+  color:#0f172a;
+}
+
+.rt-kpi-value span{
+  font-size:16px;
+  font-weight:900;
+  color:#6b7280;
+}
+
+.rt-kpi-value-sm{
+  font-size:22px;
+  font-weight:1000;
+  color:#0f172a;
+}
+
