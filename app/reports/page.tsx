@@ -358,6 +358,63 @@ row.push(`${avg.toFixed(1)}%`);
       }
       s1.views = [{ state: "frozen", ySplit: 3, xSplit: 2 }];
 
+// ===== Chart: Monthly Average Attendance by Office =====
+
+// Determine rows
+const headerRowIndex = 3;
+const firstDataRow = headerRowIndex + 1;
+const lastDataRow = s1.lastRow?.number ?? firstDataRow;
+
+// Column indexes
+const officeCol = 1; // Office
+const avgCol = header.length; // Last column = Average (%)
+
+// Add chart
+const chart = s1.addChart({
+  title: {
+    name: "Monthly Average Attendance by Office",
+  },
+  chartType: ExcelJS.ChartType.column,
+  legend: {
+    position: ExcelJS.ChartLegendPosition.right,
+  },
+  axes: {
+    categoryAxis: {
+      title: { name: "Office" },
+    },
+    valueAxis: {
+      title: { name: "Attendance (%)" },
+      min: 0,
+      max: 100,
+    },
+  },
+  series: [
+    {
+      name: "Average Attendance %",
+      categories: {
+        sheetName: s1.name,
+        firstRow: firstDataRow,
+        lastRow: lastDataRow,
+        firstColumn: officeCol,
+        lastColumn: officeCol,
+      },
+      values: {
+        sheetName: s1.name,
+        firstRow: firstDataRow,
+        lastRow: lastDataRow,
+        firstColumn: avgCol,
+        lastColumn: avgCol,
+      },
+    },
+  ],
+});
+
+// Position chart nicely to the right of the table
+chart.top = 100;
+chart.left = 900;
+chart.width = 700;
+chart.height = 420;
+
       // Sheet 2: Sessions Breakdown (kept)
       const s2 = wb.addWorksheet("Sessions Breakdown");
       s2.addRow(["Session Date (PH)", "Event Name", "Session ID", "Department", "Present", "Total", "Rate (%)"]);
