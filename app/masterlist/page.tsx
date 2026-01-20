@@ -169,11 +169,13 @@ const [successMsg, setSuccessMsg] = useState<string>("");
       if (!p.employee_id) rowErrors.push(`Line ${line}: employee_id is blank.`);
       if (!p.full_name) rowErrors.push(`Line ${line}: full_name is blank.`);
       if (!p.department) rowErrors.push(`Line ${line}: department is blank.`);
-      if (p.employee_id && !/^EMP-\d{3,}$/.test(p.employee_id)) {
-        rowErrors.push(
-          `Line ${line}: employee_id "${p.employee_id}" must look like EMP-001.`
-        );
-      }
+      
+      if (p.employee_id && !/^[A-Z]{1,5}-\d+$/.test(p.employee_id)) {
+  rowErrors.push(
+    `Line ${line}: employee_id "${p.employee_id}" must look like ABC-123.`
+  );
+}
+
       if (p.employee_id && p.full_name && p.department) valid.push(p);
     });
 
