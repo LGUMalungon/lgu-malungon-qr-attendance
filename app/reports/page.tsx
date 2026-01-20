@@ -208,29 +208,14 @@ function ReportsInner() {
     }
   }
 
+  // UPDATED: Monthly export now includes ALL sessions as columns + average %
   async function exportMonthlyTrend() {
     setMonthlyLoading(true);
     try {
       const start = monthStartISOFromKey(selectedMonth);
       const end = monthEndISOFromKey(selectedMonth);
 
-      // Monthly office summary (view)
-      const { data: monthly, error: mErr } = await supabase
-        .from("v_monthly_office_summary")
-        .select("month_start,department,dept_total,dept_present,dept_rate")
-        .gte("month_start", start)
-        .lt("month_start", end);
-
-      if (mErr) {
-        alert(`Monthly summary load failed: ${mErr.message}`);
-        return;
-      }
-
-      const monthlySorted = (monthly as MonthlyOfficeSummary[])
-        .slice()
-        .sort((a, b) => b.dept_rate - a.dept_rate || b.dept_present - a.dept_present);
-
-      // Sessions in the month
+      // Sessions in the month (these become columns)
       const { data: ses, error: sErr } = await supabase
         .from("sessions")
         .select("session_id,event_name,started_at")
@@ -242,6 +227,9 @@ function ReportsInner() {
         alert(`Sessions load failed: ${sErr.message}`);
         return;
       }
+
+      const sessionsList = (ses as any[]) ?? [];
+      const sessionIds = sessionsList.map((s) => s.session_id);
 
       // Active employee totals by department
       const { data: totals, error: tErr } = await supabase
@@ -259,7 +247,9 @@ function ReportsInner() {
         deptTotalsMap[r.department] = (deptTotalsMap[r.department] ?? 0) + 1;
       });
 
-      const sessionIds = (ses as any[]).map((s) => s.session_id);
+      const departments = Object.keys(deptTotalsMap).sort((a, b) => a.localeCompare(b));
+
+      // Attendance rows for those sessions (for per-session presence)
       let enriched: any[] = [];
       if (sessionIds.length) {
         const { data: enr, error: eErr } = await supabase
@@ -274,32 +264,31 @@ function ReportsInner() {
         enriched = (enr as any[]) ?? [];
       }
 
-      const bySessionDept: Record<string, { [dept: string]: Set<string> }> = {};
+      // presentSets[dept][session_id] => Set(employee_id)
+      const presentSets: Record<string, Record<string, Set<string>>> = {};
       enriched.forEach((r) => {
-        const sid = r.session_id;
         const dept = r.department;
+        const sid = r.session_id;
         const emp = r.employee_id;
-        if (!bySessionDept[sid]) bySessionDept[sid] = {};
-        if (!bySessionDept[sid][dept]) bySessionDept[sid][dept] = new Set<string>();
-        bySessionDept[sid][dept].add(emp);
+        if (!presentSets[dept]) presentSets[dept] = {};
+        if (!presentSets[dept][sid]) presentSets[dept][sid] = new Set<string>();
+        presentSets[dept][sid].add(emp);
       });
 
+      // Also keep Sessions Breakdown sheet (as before, but accurate per session)
       const sessionOfficeRows: SessionOfficeRow[] = [];
-      (ses as any[]).forEach((s) => {
+      sessionsList.forEach((s) => {
         const sid = s.session_id;
         const started = s.started_at;
         const ev = s.event_name;
-        const month_start = start;
 
-        const deptMap = bySessionDept[sid] ?? {};
-        const allDepts = Object.keys(deptTotalsMap).sort((a, b) => a.localeCompare(b));
-
-        allDepts.forEach((dept) => {
+        departments.forEach((dept) => {
           const total = deptTotalsMap[dept] ?? 0;
-          const present = deptMap[dept] ? deptMap[dept].size : 0;
+          const present = presentSets[dept]?.[sid]?.size ?? 0;
           const rate = total ? Math.round((present / total) * 1000) / 10 : 0;
+
           sessionOfficeRows.push({
-            month_start,
+            month_start: start,
             session_id: sid,
             started_at: started,
             event_name: ev,
@@ -313,15 +302,63 @@ function ReportsInner() {
 
       const wb = new ExcelJS.Workbook();
 
-      const s1 = wb.addWorksheet("Monthly Summary");
+      // Sheet 1: Pivot-style monthly report
+      const s1 = wb.addWorksheet("Monthly Report");
       s1.addRow(["Month", selectedMonth]);
       s1.addRow([]);
-      s1.addRow(["Department", "Present (unique)", "Total", "Rate (%)"]);
-      monthlySorted.forEach((d) => {
-        s1.addRow([d.department, d.dept_present, d.dept_total, d.dept_rate]);
-      });
-      s1.columns.forEach((c) => (c.width = 24));
 
+      const header: string[] = ["Office", "Total employees"];
+      sessionsList.forEach((s) => {
+        const dt = formatPH(s.started_at);
+        const ev = String(s.event_name ?? "").trim();
+        const evShort = ev.length > 18 ? ev.slice(0, 18) + "…" : ev;
+        header.push(`${dt} - ${evShort}`);
+      });
+      header.push("Average (%)");
+
+      s1.addRow(header);
+
+      const hdrRow = s1.getRow(3);
+      hdrRow.font = { bold: true };
+      hdrRow.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
+
+      departments.forEach((dept) => {
+        const total = deptTotalsMap[dept] ?? 0;
+
+        let sumRate = 0;
+        let count = 0;
+
+        const row: any[] = [dept, total];
+
+        sessionsList.forEach((s) => {
+          const sid = s.session_id;
+          const present = presentSets[dept]?.[sid]?.size ?? 0;
+          const rate = total ? Math.round((present / total) * 1000) / 10 : 0;
+
+          sumRate += rate;
+          count += 1;
+
+          row.push(`${present} (${rate.toFixed(1)}%)`);
+        });
+
+        const avg = count ? Math.round((sumRate / count) * 10) / 10 : 0;
+row.push(`${avg.toFixed(1)}%`);
+
+        s1.addRow(row);
+      });
+
+      // widths + freeze
+      const totalCols = header.length;
+      for (let c = 1; c <= totalCols; c++) {
+        const col = s1.getColumn(c);
+        if (c === 1) col.width = 28;
+        else if (c === 2) col.width = 16;
+        else if (c === totalCols) col.width = 16;
+        else col.width = 26;
+      }
+      s1.views = [{ state: "frozen", ySplit: 3, xSplit: 2 }];
+
+      // Sheet 2: Sessions Breakdown (kept)
       const s2 = wb.addWorksheet("Sessions Breakdown");
       s2.addRow(["Session Date (PH)", "Event Name", "Session ID", "Department", "Present", "Total", "Rate (%)"]);
       sessionOfficeRows.forEach((r) => {
@@ -429,7 +466,7 @@ function ReportsInner() {
             </button>
 
             <div className="hint" style={{ marginTop: 10 }}>
-              Sheets: Monthly Summary + Sessions Breakdown.
+              Sheets: Monthly Report + Sessions Breakdown.
             </div>
           </div>
         </div>
