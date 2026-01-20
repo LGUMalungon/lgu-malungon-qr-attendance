@@ -258,7 +258,6 @@ function DashboardInner() {
         <a className="sidebar-link" href="/scanner">
           Scanner
         </a>
-
         <a className="sidebar-link" href="/reports">
           Reports
         </a>
@@ -280,18 +279,35 @@ function DashboardInner() {
             <div className="page-subtitle">Session control and live stats.</div>
           </div>
 
+          {/* ✅ SESSION INDICATOR: pill + bold line, no UUID */}
           <div className="session-indicator">
             {!activeSession ? (
               <>
-                <div className="session-label">No Active Session</div>
-                <div className="session-sub">Start a session to begin.</div>
+                <div className="pill pill-inactive">
+                  <span className="pill-dot" />
+                  NO ACTIVE SESSION
+                </div>
+                <div className="session-sub" style={{ marginTop: 8 }}>
+                  Start a session to begin.
+                </div>
               </>
             ) : (
               <>
-                <div className="session-label">
-                  Active Session: {activeSession.session_id}
+                <div className="pill pill-active">
+                  <span className="pill-dot" />
+                  ACTIVE SESSION
                 </div>
-                <div className="session-sub">
+
+                {/* ✅ Bold but NOT too big */}
+                <div
+                  style={{
+                    marginTop: 8,
+                    fontSize: 13,
+                    fontWeight: 900,
+                    color: "#111827",
+                    letterSpacing: "0.1px",
+                  }}
+                >
                   {activeSession.event_name} • {formatPH(activeSession.started_at)}
                 </div>
               </>
@@ -300,8 +316,13 @@ function DashboardInner() {
         </div>
 
         {/* 2-column layout: Session control (left) + Live stats (right, wide) */}
-        <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 16 }}>
-
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "280px 1fr",
+            gap: 16,
+          }}
+        >
           {/* Session control */}
           <div className="card">
             <div className="card-title">Session control</div>
@@ -351,19 +372,39 @@ function DashboardInner() {
               LGU totals + department performance (sorted high → low).
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "160px 1fr", gap: 14 }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "160px 1fr",
+                gap: 14,
+              }}
+            >
               {/* Narrow LGU column */}
-              <div style={{ border: "1px solid rgba(0,0,0,0.08)", borderRadius: 14, padding: 12 }}>
+              <div
+                style={{
+                  border: "1px solid rgba(0,0,0,0.08)",
+                  borderRadius: 14,
+                  padding: 12,
+                }}
+              >
                 <div style={{ fontWeight: 900, fontSize: 18 }}>
                   {stats.present_total} / {stats.lgu_total}
                 </div>
 
                 <div style={{ height: 10 }} />
 
-                <div style={{ fontWeight: 900, fontSize: 12, color: "#6b7280" }}>
+                <div
+                  style={{
+                    fontWeight: 900,
+                    fontSize: 12,
+                    color: "#6b7280",
+                  }}
+                >
                   Attendance rate:
                 </div>
-                <div style={{ fontWeight: 900, fontSize: 30 }}>{attRate}%</div>
+                <div style={{ fontWeight: 900, fontSize: 30 }}>
+                  {attRate}%
+                </div>
 
                 <div style={{ height: 12 }} />
 
@@ -376,7 +417,9 @@ function DashboardInner() {
                     marginBottom: 8,
                   }}
                 >
-                  <div style={{ fontWeight: 900, fontSize: 12 }}>Scanned in</div>
+                  <div style={{ fontWeight: 900, fontSize: 12 }}>
+                    Scanned in
+                  </div>
                   <div style={{ fontWeight: 900, fontSize: 18 }}>
                     {stats.scanned_total}
                   </div>
@@ -390,7 +433,9 @@ function DashboardInner() {
                     padding: "8px 10px",
                   }}
                 >
-                  <div style={{ fontWeight: 900, fontSize: 12 }}>Manual entry</div>
+                  <div style={{ fontWeight: 900, fontSize: 12 }}>
+                    Manual entry
+                  </div>
                   <div style={{ fontWeight: 900, fontSize: 18 }}>
                     {stats.manual_total}
                   </div>
@@ -398,7 +443,13 @@ function DashboardInner() {
               </div>
 
               {/* Wide department column */}
-              <div style={{ border: "1px solid rgba(0,0,0,0.08)", borderRadius: 14, padding: 12 }}>
+              <div
+                style={{
+                  border: "1px solid rgba(0,0,0,0.08)",
+                  borderRadius: 14,
+                  padding: 12,
+                }}
+              >
                 <div style={{ fontWeight: 900, marginBottom: 8 }}>
                   Department performance
                 </div>
@@ -419,7 +470,13 @@ function DashboardInner() {
                   <div>Rate</div>
                 </div>
 
-                <div style={{ maxHeight: 420, overflow: "auto", paddingRight: 4 }}>
+                <div
+                  style={{
+                    maxHeight: 420,
+                    overflow: "auto",
+                    paddingRight: 4,
+                  }}
+                >
                   {officeStats.map((d) => {
                     const label = `${d.dept_present}/${d.dept_total} • ${d.dept_rate}%`;
                     return (
@@ -433,10 +490,22 @@ function DashboardInner() {
                           }}
                         >
                           <div style={{ fontWeight: 900 }}>{d.department}</div>
-                          <div style={{ fontSize: 12, color: "#374151", fontWeight: 900 }}>
+                          <div
+                            style={{
+                              fontSize: 12,
+                              color: "#374151",
+                              fontWeight: 900,
+                            }}
+                          >
                             {d.dept_present}/{d.dept_total}
                           </div>
-                          <div style={{ fontSize: 12, color: "#374151", fontWeight: 900 }}>
+                          <div
+                            style={{
+                              fontSize: 12,
+                              color: "#374151",
+                              fontWeight: 900,
+                            }}
+                          >
                             {d.dept_rate}%
                           </div>
                         </div>
@@ -454,7 +523,10 @@ function DashboardInner() {
                           <div
                             style={{
                               height: "100%",
-                              width: `${Math.min(100, Math.max(0, d.dept_rate))}%`,
+                              width: `${Math.min(
+                                100,
+                                Math.max(0, d.dept_rate)
+                              )}%`,
                               background: "rgba(249,115,22,0.85)",
                             }}
                           />

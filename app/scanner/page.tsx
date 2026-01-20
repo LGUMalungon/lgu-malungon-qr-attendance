@@ -433,28 +433,48 @@ function ScannerInner() {
         </div>
 
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          
           <div className="scanner-session">
-            {loadingSession ? (
-              <>
-                <div className="session-label">Checking session…</div>
-                <div className="session-sub">Please wait</div>
-              </>
-            ) : activeSession ? (
-              <>
-                <div className="session-label">
-                  Active Session: {activeSession.session_id}
-                </div>
-                <div className="session-sub">
-                  {activeSession.event_name} • {formatPH(activeSession.started_at)}
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="session-label">No Active Session</div>
-                <div className="session-sub">Scanning is disabled</div>
-              </>
-            )}
-          </div>
+  {loadingSession ? (
+    <>
+      <div className="session-label">Checking session…</div>
+      <div className="session-sub">Please wait</div>
+    </>
+  ) : activeSession ? (
+    <>
+      <div className="pill pill-active">
+        <span className="pill-dot" />
+        ACTIVE SESSION
+      </div>
+
+      <div
+        style={{
+          marginTop: 8,
+          fontSize: 14,          // same as Dashboard feel
+          fontWeight: 800,
+          color: "#111827",
+          letterSpacing: "0.2px",
+        }}
+      >
+        {activeSession.event_name} • {formatPH(activeSession.started_at)}
+      </div>
+    </>
+  ) : (
+    <>
+<div className="pill pill-inactive">
+  <span className="pill-dot" />
+  NO ACTIVE SESSION
+</div>
+
+
+      <div className="session-sub" style={{ marginTop: 10 }}>
+        Scanning is disabled.
+      </div>
+    </>
+  )}
+</div>
+
+
 
           {/* ✅ added: Back to Dashboard for HR Admin / App Master only */}
           {(role === "hr_admin" || role === "app_master") && (
