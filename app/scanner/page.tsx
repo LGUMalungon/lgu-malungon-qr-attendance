@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../lib/supabaseClient";
 import { AuthGuard } from "../components/AuthGuard";
 
+type Role = "app_master" | "hr_admin" | "hr_scanner";
+
 type ActiveSession = {
   session_id: string;
   event_name: string;
@@ -53,6 +55,9 @@ function getOrCreateDeviceId() {
 
 function ScannerInner() {
   const deviceId = useMemo(() => getOrCreateDeviceId(), []);
+
+  // ✅ added: role (so we can show Back to Dashboard for admin/app master)
+  const [role, setRole] = useState<Role | "">("");
 
   const [loadingSession, setLoadingSession] = useState(true);
   const [activeSession, setActiveSession] = useState<ActiveSession | null>(null);
@@ -155,6 +160,13 @@ function ScannerInner() {
 
     setCounts({ scanned, manual, total });
   }
+
+  // ✅ added: get role once (does not affect scanner UI)
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setRole((data.session?.user?.user_metadata?.role ?? "") as Role | "");
+    });
+  }, []);
 
   useEffect(() => {
     loadActiveSession();
@@ -443,6 +455,13 @@ function ScannerInner() {
               </>
             )}
           </div>
+
+          {/* ✅ added: Back to Dashboard for HR Admin / App Master only */}
+          {(role === "hr_admin" || role === "app_master") && (
+            <a href="/dashboard" className="btn btn-blue">
+              ← Back to Dashboard
+            </a>
+          )}
 
           <a href="/logout" className="btn btn-grey">
             Logout

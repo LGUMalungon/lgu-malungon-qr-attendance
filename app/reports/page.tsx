@@ -518,7 +518,7 @@ chart.height = 420;
               />
             </div>
 
-            <button className="btn btn-grey" disabled={monthlyLoading} onClick={exportMonthlyTrend}>
+            <button className="btn btn-blue" disabled={monthlyLoading} onClick={exportMonthlyTrend}>
               {monthlyLoading ? "Generating..." : "Export monthly trend (Excel)"}
             </button>
 
