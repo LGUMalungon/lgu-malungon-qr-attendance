@@ -41,12 +41,36 @@ html, body{
   min-width: 100%;      /* but never smaller than viewport */
 }
 
-/* Header/footer must follow the document width */
+/* =========================================================
+   FIX: Extend header/footer background to far-right scroll
+   WITHOUT affecting layout or scroll behavior
+   ========================================================= */
+
 .header,
 .footer{
-  width: max-content;   /* match document width when wider than viewport */
-  min-width: 100%;      /* still fill viewport at minimum */
+  position: relative;
+  overflow: visible;
 }
+
+/* extend background infinitely to the right */
+.header::before,
+.footer::before{
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 100%;
+  width: 2000px;        /* brute force extension */
+  height: 100%;
+  background: inherit; /* same gradient/color */
+}
+
+/* ensure text stays above */
+.header > *,
+.footer > *{
+  position: relative;
+  z-index: 1;
+}
+
 
 
 
