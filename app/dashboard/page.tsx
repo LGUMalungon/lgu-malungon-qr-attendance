@@ -80,9 +80,13 @@ function DashboardInner() {
       .maybeSingle();
 
     if (error) {
-      alert(`Failed to load active session: ${error.message}`);
-      return;
-    }
+  // Ignore aborted fetches (common on mobile / slow networks)
+  if ((error as any)?.name === "AbortError") return;
+
+  alert(`Failed to load active session: ${error.message}`);
+  return;
+}
+
 
     const s = (data as any) ?? null;
     setActiveSession(s);
