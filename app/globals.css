@@ -32,18 +32,18 @@ html, body { margin: 0; padding: 0; }
 
 /* =========================================================
    IMPORTANT: Header/Footer must extend to widest content
-   (Fix: when dashboard can scroll right, header/footer should
-   reach the same far-right width.)
+   Fix for iOS Safari: make the DOCUMENT (html+body) expand
+   to the width of the widest child.
    ========================================================= */
-
-/* Let the document width grow to match its widest child */
-body{
-  min-width: max-content;
+html, body{
+  width: max-content;
+  min-width: 100%;
 }
 
 /* Ensure header/footer stretch to full document width */
 .header,
 .footer{
+  width: 100%;
   min-width: 100%;
 }
 
