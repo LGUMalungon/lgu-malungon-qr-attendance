@@ -30,50 +30,6 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 
-/* =========================================================
-   FIX: Header/Footer must extend to far-right scroll width
-   (when the PAGE can scroll horizontally on mobile)
-   ========================================================= */
-
-/* Let the document grow to the widest child */
-html, body{
-  width: max-content;   /* grow with widest content */
-  min-width: 100%;      /* but never smaller than viewport */
-}
-
-/* =========================================================
-   FIX: Extend header/footer background to far-right scroll
-   WITHOUT affecting layout or scroll behavior
-   ========================================================= */
-
-.header,
-.footer{
-  position: relative;
-  overflow: visible;
-}
-
-/* extend background infinitely to the right */
-.header::before,
-.footer::before{
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 100%;
-  width: 2000px;        /* brute force extension */
-  height: 100%;
-  background: inherit; /* same gradient/color */
-}
-
-/* ensure text stays above */
-.header > *,
-.footer > *{
-  position: relative;
-  z-index: 1;
-}
-
-
-
-
 /* ---- Base ---- */
 body {
   color: var(--ink);
@@ -97,14 +53,9 @@ button, input { font-family: inherit; }
   padding:0 20px;
   color:#ffffff;
 
-  /* Premium orange gradient */
-  background:
-    linear-gradient(
-      180deg,
-      #fb923c 0%,
-      #f97316 55%,
-      #ea580c 100%
-    );
+  /* Premium orange gradient (kept exactly, stored in a variable for extension) */
+  --bar-bg: linear-gradient(180deg, #fb923c 0%, #f97316 55%, #ea580c 100%);
+  background: var(--bar-bg);
 
   /* Depth */
   box-shadow:
@@ -171,13 +122,47 @@ button, input { font-family: inherit; }
 
 /* ---- FOOTER (Gray secondary) ---- */
 .footer{
-  background: linear-gradient(90deg, #4b5563 0%, #6b7280 100%);
+  /* Gray gradient (stored in a variable for extension) */
+  --bar-bg: linear-gradient(90deg, #4b5563 0%, #6b7280 100%);
+  background: var(--bar-bg);
+
   color:#ffffff;
   text-align:center;
   padding:8px 12px;
   font-size:12px;
   font-weight:800;
   letter-spacing: 0.02em;
+}
+
+/* =========================================================
+   FIX: Extend header/footer background to far-right scroll
+   Works even when dashboard overflows horizontally on mobile
+   (does NOT change scroll behavior)
+   ========================================================= */
+
+.header,
+.footer{
+  position: relative;
+}
+
+/* extend the bar background beyond the element width */
+.header::before,
+.footer::before{
+  content:"";
+  position:absolute;
+  top:0;
+  bottom:0;
+  left:100%;
+  width:4000px;              /* brute-force extension */
+  background: var(--bar-bg); /* exact same gradient */
+  pointer-events:none;
+}
+
+/* ensure inner content stays above the extension */
+.header > *,
+.footer > *{
+  position: relative;
+  z-index: 1;
 }
 
 /* ---- Auth pages ---- */
