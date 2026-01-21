@@ -90,16 +90,21 @@ function ScannerInner() {
     total: 0,
   });
 
-  // --- Sounds (no external files) ---
+    // --- Sounds (no external files) ---
   const audioCtxRef = useRef<AudioContext | null>(null);
+
   function playTone(kind: "good" | "bad" | "dup") {
     try {
+      if (typeof window === "undefined") return;
+
       const AudioContextAny =
         (window as any).AudioContext || (window as any).webkitAudioContext;
       if (!AudioContextAny) return;
 
       if (!audioCtxRef.current) audioCtxRef.current = new AudioContextAny();
+
       const ctx = audioCtxRef.current;
+      if (!ctx) return; // ✅ TS fix: ctx can be null
 
       const o = ctx.createOscillator();
       const g = ctx.createGain();
@@ -121,6 +126,7 @@ function ScannerInner() {
       o.stop(ctx.currentTime + 0.28);
     } catch {}
   }
+
 
   function setVisuals(next: ResultStatus) {
     setStatus(next);

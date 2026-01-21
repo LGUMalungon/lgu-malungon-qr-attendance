@@ -23,14 +23,6 @@ type OfficeStat = {
   dept_rate: number;
 };
 
-type MonthlyOfficeSummary = {
-  month_start: string;
-  department: string;
-  dept_total: number;
-  dept_present: number;
-  dept_rate: number;
-};
-
 type SessionOfficeRow = {
   month_start: string;
   session_id: string;
@@ -100,6 +92,7 @@ function ReportsInner() {
       setRole((data.session?.user?.user_metadata?.role ?? "") as Role | "");
     });
     refreshSessions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function refreshSessions() {
@@ -117,7 +110,7 @@ function ReportsInner() {
     const list = (data as any as SessionRow[]) ?? [];
     setSessions(list);
 
-    // Default selection: active session if present, else most recent ended
+    // Default selection: active session if present, else most recent
     const active = list.find((s) => s.status === "active");
     if (active) setSelectedSessionId(active.session_id);
     else if (list[0]) setSelectedSessionId(list[0].session_id);
@@ -153,7 +146,7 @@ function ReportsInner() {
         (a, b) => b.dept_rate - a.dept_rate || b.dept_present - a.dept_present
       );
 
-      // Raw attendance (VIEW)
+      // Raw attendance
       const { data: raw, error: rawErr } = await supabase
         .from("v_session_raw_attendance")
         .select("employee_id,full_name,department,method,recorded_at")
@@ -168,7 +161,6 @@ function ReportsInner() {
 
       // Sheet 1: Summary
       const s1 = wb.addWorksheet("Summary");
-
       s1.addRows([
         ["Event", selectedSession.event_name],
         ["Session started", formatPH(selectedSession.started_at)],
@@ -208,14 +200,14 @@ function ReportsInner() {
     }
   }
 
-  // UPDATED: Monthly export now includes ALL sessions as columns + average %
+  // Monthly export: ALL sessions become columns + average %
   async function exportMonthlyTrend() {
     setMonthlyLoading(true);
     try {
       const start = monthStartISOFromKey(selectedMonth);
       const end = monthEndISOFromKey(selectedMonth);
 
-      // Sessions in the month (these become columns)
+      // Sessions in the month
       const { data: ses, error: sErr } = await supabase
         .from("sessions")
         .select("session_id,event_name,started_at")
@@ -244,7 +236,9 @@ function ReportsInner() {
 
       const deptTotalsMap: Record<string, number> = {};
       (totals as any[]).forEach((r) => {
-        deptTotalsMap[r.department] = (deptTotalsMap[r.department] ?? 0) + 1;
+        const dept = String(r.department ?? "").trim();
+        if (!dept) return;
+        deptTotalsMap[dept] = (deptTotalsMap[dept] ?? 0) + 1;
       });
 
       const departments = Object.keys(deptTotalsMap).sort((a, b) => a.localeCompare(b));
@@ -267,15 +261,17 @@ function ReportsInner() {
       // presentSets[dept][session_id] => Set(employee_id)
       const presentSets: Record<string, Record<string, Set<string>>> = {};
       enriched.forEach((r) => {
-        const dept = r.department;
-        const sid = r.session_id;
-        const emp = r.employee_id;
+        const dept = String(r.department ?? "").trim();
+        const sid = String(r.session_id ?? "");
+        const emp = String(r.employee_id ?? "");
+        if (!dept || !sid || !emp) return;
+
         if (!presentSets[dept]) presentSets[dept] = {};
         if (!presentSets[dept][sid]) presentSets[dept][sid] = new Set<string>();
         presentSets[dept][sid].add(emp);
       });
 
-      // Also keep Sessions Breakdown sheet (as before, but accurate per session)
+      // Sessions Breakdown sheet rows
       const sessionOfficeRows: SessionOfficeRow[] = [];
       sessionsList.forEach((s) => {
         const sid = s.session_id;
@@ -318,6 +314,7 @@ function ReportsInner() {
 
       s1.addRow(header);
 
+      // Header row is the 3rd row (after Month row + blank row)
       const hdrRow = s1.getRow(3);
       hdrRow.font = { bold: true };
       hdrRow.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
@@ -342,7 +339,7 @@ function ReportsInner() {
         });
 
         const avg = count ? Math.round((sumRate / count) * 10) / 10 : 0;
-row.push(`${avg.toFixed(1)}%`);
+        row.push(`${avg.toFixed(1)}%`);
 
         s1.addRow(row);
       });
@@ -358,68 +355,19 @@ row.push(`${avg.toFixed(1)}%`);
       }
       s1.views = [{ state: "frozen", ySplit: 3, xSplit: 2 }];
 
-// ===== Chart: Monthly Average Attendance by Office =====
-
-// Determine rows
-const headerRowIndex = 3;
-const firstDataRow = headerRowIndex + 1;
-const lastDataRow = s1.lastRow?.number ?? firstDataRow;
-
-// Column indexes
-const officeCol = 1; // Office
-const avgCol = header.length; // Last column = Average (%)
-
-// Add chart
-const chart = s1.addChart({
-  title: {
-    name: "Monthly Average Attendance by Office",
-  },
-  chartType: ExcelJS.ChartType.column,
-  legend: {
-    position: ExcelJS.ChartLegendPosition.right,
-  },
-  axes: {
-    categoryAxis: {
-      title: { name: "Office" },
-    },
-    valueAxis: {
-      title: { name: "Attendance (%)" },
-      min: 0,
-      max: 100,
-    },
-  },
-  series: [
-    {
-      name: "Average Attendance %",
-      categories: {
-        sheetName: s1.name,
-        firstRow: firstDataRow,
-        lastRow: lastDataRow,
-        firstColumn: officeCol,
-        lastColumn: officeCol,
-      },
-      values: {
-        sheetName: s1.name,
-        firstRow: firstDataRow,
-        lastRow: lastDataRow,
-        firstColumn: avgCol,
-        lastColumn: avgCol,
-      },
-    },
-  ],
-});
-
-// Position chart nicely to the right of the table
-chart.top = 100;
-chart.left = 900;
-chart.width = 700;
-chart.height = 420;
-
-      // Sheet 2: Sessions Breakdown (kept)
+      // Sheet 2: Sessions Breakdown
       const s2 = wb.addWorksheet("Sessions Breakdown");
       s2.addRow(["Session Date (PH)", "Event Name", "Session ID", "Department", "Present", "Total", "Rate (%)"]);
       sessionOfficeRows.forEach((r) => {
-        s2.addRow([formatPH(r.started_at), r.event_name, r.session_id, r.department, r.dept_present, r.dept_total, r.dept_rate]);
+        s2.addRow([
+          formatPH(r.started_at),
+          r.event_name,
+          r.session_id,
+          r.department,
+          r.dept_present,
+          r.dept_total,
+          r.dept_rate,
+        ]);
       });
       s2.columns.forEach((c) => (c.width = 24));
 
@@ -427,6 +375,7 @@ chart.height = 420;
       const blob = new Blob([buf], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
+
       saveAs(blob, `Monthly_Trend_${selectedMonth}.xlsx`);
     } finally {
       setMonthlyLoading(false);
@@ -438,11 +387,21 @@ chart.height = 420;
       <aside className="sidebar">
         <div className="sidebar-title">Menu</div>
 
-        <a className="sidebar-link" href="/dashboard">Dashboard</a>
-        <a className="sidebar-link" href="/scanner">Scanner</a>
-        <a className="sidebar-link active" href="/reports">Reports</a>
+        <a className="sidebar-link" href="/dashboard">
+          Dashboard
+        </a>
+        <a className="sidebar-link" href="/scanner">
+          Scanner
+        </a>
+        <a className="sidebar-link active" href="/reports">
+          Reports
+        </a>
 
-        {role === "app_master" && <a className="sidebar-link" href="/masterlist">Masterlist</a>}
+        {role === "app_master" && (
+          <a className="sidebar-link" href="/masterlist">
+            Masterlist
+          </a>
+        )}
 
         <div style={{ height: 10 }} />
         <SignOutButton />
@@ -457,7 +416,7 @@ chart.height = 420;
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: 16 }}>
-          {/* Past/Current session export */}
+          {/* Session export */}
           <div className="card">
             <div className="card-title">Session export</div>
             <div className="card-subtitle">
