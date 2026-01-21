@@ -29,7 +29,7 @@ export default function RootLayout({
         <main className="main">{children}</main>
 
         <footer className="footer">
-          LGU Malungon © 2025 created by MIO
+          LGU Malungon © 2026 created by MIO
         </footer>
       </body>
     </html>

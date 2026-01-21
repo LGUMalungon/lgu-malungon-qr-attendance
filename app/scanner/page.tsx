@@ -496,125 +496,120 @@ function ScannerInner() {
       </div>
 
       <div className="scanner-grid">
-        <div className="scanner-left">
-          <div className="card">
-            <div className="card-title">Scan QR</div>
-            <div className="card-subtitle">
-              Point camera at QR code (Employee ID).
-            </div>
+  {/* SCAN QR (top) */}
+  <div className="scan-card">
+    <div className="card">
+      <div className="card-title">Scan QR</div>
+      <div className="card-subtitle">Point camera at QR code (Employee ID).</div>
 
-            {!loadingSession && !activeSession && (
-              <div className="hint" style={{ color: "#dc2626", fontWeight: 800 }}>
-                Scanning is disabled. No active session.
-              </div>
-            )}
+      {!loadingSession && !activeSession && (
+        <div className="hint" style={{ color: "#dc2626", fontWeight: 800 }}>
+          Scanning is disabled. No active session.
+        </div>
+      )}
 
-            <div className={`scan-box ${scanBorderClass}`}>
-              <div id="qr-reader" className="qr-reader" />
-            </div>
+      <div className={`scan-box ${scanBorderClass}`}>
+        <div id="qr-reader" className="qr-reader" />
+      </div>
 
-            <div className="hint">
-              Sound: bell = valid, buzz = invalid, low tone = duplicate.
-            </div>
+      <div className="hint">Sound: bell = valid, buzz = invalid, low tone = duplicate.</div>
+    </div>
+  </div>
+
+  {/* LATEST RESULT (must be immediately below scanner on mobile) */}
+  <div className="latest-card">
+    <div className="card">
+      <div className="card-title">Latest result</div>
+      <div className="card-subtitle">Shows the most recent scan or manual entry.</div>
+
+      <div className={resultClass}>
+        <div className="result-top">
+          <div className="result-status">
+            {latest.status === "good"
+              ? "Recorded"
+              : latest.status === "bad"
+              ? "Invalid"
+              : latest.status === "dup"
+              ? "Duplicate"
+              : "Waiting"}
           </div>
-
-          <div className="card" style={{ marginTop: 16 }}>
-            <div className="card-title">Manual entry</div>
-            <div className="card-subtitle">
-              Enter Employee ID only, then submit.
-            </div>
-
-            <div className="field">
-              <label className="label">Employee ID</label>
-              <input
-                className="input"
-                placeholder="e.g., EMP-0001"
-                value={manualId}
-                onChange={(e) => setManualId(e.target.value)}
-                disabled={!activeSession || submitting}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") submitManual();
-                }}
-              />
-            </div>
-
-            <div style={{ height: 12 }} />
-
-            <button
-              className="btn btn-orange"
-              onClick={submitManual}
-              disabled={
-                !activeSession || submitting || manualId.trim().length === 0
-              }
-            >
-              {submitting ? "Submitting..." : "Submit"}
-            </button>
-
-            <div className="hint" style={{ marginTop: 10 }}>
-              Green = recorded. Red = invalid. Yellow = duplicate.
-            </div>
+          <div className="result-time">
+            {latest.time ? formatPH(latest.time) : "PH time will appear here"}
           </div>
         </div>
 
-        <div className="scanner-right">
-          <div className="card">
-            <div className="card-title">Latest result</div>
-            <div className="card-subtitle">
-              Shows the most recent scan or manual entry.
-            </div>
-
-            <div className={resultClass}>
-              <div className="result-top">
-                <div className="result-status">
-                  {latest.status === "good"
-                    ? "Recorded"
-                    : latest.status === "bad"
-                    ? "Invalid"
-                    : latest.status === "dup"
-                    ? "Duplicate"
-                    : "Waiting"}
-                </div>
-                <div className="result-time">
-                  {latest.time ? formatPH(latest.time) : "PH time will appear here"}
-                </div>
-              </div>
-
-              <div className="result-main">
-                <div className="result-name">{latest.name}</div>
-                <div className="result-meta">
-                  {latest.dept ? `${latest.dept} • ` : ""}
-                  {latest.employeeId}
-                </div>
-              </div>
-
-              <div className="result-note">{latest.note}</div>
-            </div>
-
-            <div style={{ height: 14 }} />
-
-            <div className="card-subtitle">Today’s counters (live)</div>
-
-            <div className="mini-stats">
-              <div className="mini">
-                <div className="mini-label">Scanned</div>
-                <div className="mini-value">{counts.scanned}</div>
-              </div>
-              <div className="mini">
-                <div className="mini-label">Manual</div>
-                <div className="mini-value">{counts.manual}</div>
-              </div>
-              <div className="mini">
-                <div className="mini-label">Total</div>
-                <div className="mini-value">{counts.total}</div>
-              </div>
-            </div>
-
-            <div className="hint" style={{ marginTop: 10 }}>
-              Device ID: {deviceId}
-            </div>
+        <div className="result-main">
+          <div className="result-name">{latest.name}</div>
+          <div className="result-meta">
+            {latest.dept ? `${latest.dept} • ` : ""}
+            {latest.employeeId}
           </div>
+        </div>
+
+        <div className="result-note">{latest.note}</div>
+      </div>
+
+      <div style={{ height: 14 }} />
+      <div className="card-subtitle">Today’s counters (live)</div>
+
+      <div className="mini-stats">
+        <div className="mini">
+          <div className="mini-label">Scanned</div>
+          <div className="mini-value">{counts.scanned}</div>
+        </div>
+        <div className="mini">
+          <div className="mini-label">Manual</div>
+          <div className="mini-value">{counts.manual}</div>
+        </div>
+        <div className="mini">
+          <div className="mini-label">Total</div>
+          <div className="mini-value">{counts.total}</div>
         </div>
       </div>
+
+      <div className="hint" style={{ marginTop: 10 }}>
+        Device ID: {deviceId}
+      </div>
+    </div>
+  </div>
+
+  {/* MANUAL ENTRY (bottom) */}
+  <div className="manual-card">
+    <div className="card">
+      <div className="card-title">Manual entry</div>
+      <div className="card-subtitle">Enter Employee ID only, then submit.</div>
+
+      <div className="field">
+        <label className="label">Employee ID</label>
+        <input
+          className="input"
+          placeholder="e.g., EMP-0001"
+          value={manualId}
+          onChange={(e) => setManualId(e.target.value)}
+          disabled={!activeSession || submitting}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") submitManual();
+          }}
+        />
+      </div>
+
+      <div style={{ height: 12 }} />
+
+      <button
+        className="btn btn-orange"
+        onClick={submitManual}
+        disabled={!activeSession || submitting || manualId.trim().length === 0}
+      >
+        {submitting ? "Submitting..." : "Submit"}
+      </button>
+
+      <div className="hint" style={{ marginTop: 10 }}>
+        Green = recorded. Red = invalid. Yellow = duplicate.
+      </div>
+    </div>
+  </div>
+</div>
+
     </div>
   );
 }

@@ -832,3 +832,69 @@ button, input { font-family: inherit; }
   color:#0f172a;
 }
 
+/* =========================================================
+   MOBILE + SCANNER GRID FIXES (clean, no duplicates)
+   ========================================================= */
+
+/* Buttons: force perfect center text (Start/End/Submit/etc.) */
+.btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+}
+
+/* Scanner layout
+   Desktop: 2 columns (left = scan+latest+manual stack, right = counters card)
+   Mobile:  1 column in order: Scan -> Latest -> Manual -> Counters (right column becomes last)
+*/
+.scanner-grid{
+  display:grid;
+  grid-template-columns: 1fr 420px;
+  gap:16px;
+  align-items:start;
+}
+
+/* These classes REQUIRE you to add them to the 3 cards in scanner/page.tsx:
+   - Scan QR card: className="card scan-card"
+   - Latest result card: className="card latest-card"
+   - Manual entry card: className="card manual-card"
+   (Your counters card can stay as is on desktop; on mobile it will fall below.)
+*/
+.scan-card{ grid-column:1; grid-row:1; }
+.latest-card{ grid-column:1; grid-row:2; }
+.manual-card{ grid-column:1; grid-row:3; }
+
+/* Right-side column (your existing right card wrapper) will naturally sit in column 2 on desktop */
+.scanner-right{ grid-column:2; grid-row:1 / span 3; }
+
+/* Mobile: stack everything in the exact order and ensure full width */
+@media (max-width: 900px){
+  .scanner-grid{
+    grid-template-columns: 1fr;
+  }
+
+  .scan-card,
+  .latest-card,
+  .manual-card,
+  .scanner-right{
+    grid-column:1;
+    grid-row:auto;
+  }
+
+  /* FULL-BLEED header + footer on mobile */
+  .header,
+  .footer{
+    width:100vw;
+    margin-left:calc(50% - 50vw);
+    margin-right:calc(50% - 50vw);
+    border-radius:0;
+  }
+
+  /* If scanner header is inside a padded wrapper, force it full width too */
+  .scanner-header{
+    width:100%;
+  }
+}
+
+
