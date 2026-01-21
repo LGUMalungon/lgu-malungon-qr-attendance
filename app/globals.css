@@ -31,21 +31,24 @@
 html, body { margin: 0; padding: 0; }
 
 /* =========================================================
-   IMPORTANT: Header/Footer must extend to widest content
-   Fix for iOS Safari: make the DOCUMENT (html+body) expand
-   to the width of the widest child.
+   FIX: Header/Footer must extend to far-right scroll width
+   (when the PAGE can scroll horizontally on mobile)
    ========================================================= */
+
+/* Let the document grow to the widest child */
 html, body{
-  width: max-content;
-  min-width: 100%;
+  width: max-content;   /* grow with widest content */
+  min-width: 100%;      /* but never smaller than viewport */
 }
 
-/* Ensure header/footer stretch to full document width */
+/* Header/footer must follow the document width */
 .header,
 .footer{
-  width: 100%;
-  min-width: 100%;
+  width: max-content;   /* match document width when wider than viewport */
+  min-width: 100%;      /* still fill viewport at minimum */
 }
+
+
 
 /* ---- Base ---- */
 body {
