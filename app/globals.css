@@ -422,6 +422,17 @@ button, input { font-family: inherit; }
   transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
   box-shadow: 0 8px 18px rgba(0,0,0,0.08);
 }
+
+/* FORCE perfect centering for all buttons (mobile-safe) */
+.btn{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
 .btn:hover{
   transform: translateY(-1px);
   box-shadow: 0 12px 26px rgba(0,0,0,0.12);
