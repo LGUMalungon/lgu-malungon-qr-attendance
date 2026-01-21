@@ -484,21 +484,24 @@ function DashboardInner() {
       Department performance
     </div>
 
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "1.8fr 120px 70px",
-        gap: 10,
-        fontSize: 12,
-        fontWeight: 900,
-        color: "#6b7280",
-        marginBottom: 8,
-      }}
-    >
-      <div>Department</div>
-      <div>Present/Total</div>
-      <div>Rate</div>
-    </div>
+   <div
+  className="dept-header-row"
+  style={{
+    display: "grid",
+    gridTemplateColumns: "1.8fr 120px 70px",
+    gap: 10,
+    fontSize: 12,
+    fontWeight: 900,
+    marginBottom: 8,
+  }}
+>
+  <div>Department</div>
+  <div>Present/Total</div>
+  <div>Rate</div>
+</div>
+
+
+
 
     <div style={{ maxHeight: 420, overflow: "auto", paddingRight: 4 }}>
       {officeStats.map((d) => (

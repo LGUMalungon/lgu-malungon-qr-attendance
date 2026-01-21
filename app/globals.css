@@ -898,3 +898,12 @@ button, input { font-family: inherit; }
 }
 
 
+/* Dashboard – Department header highlight ONLY */
+.dept-header-row{
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #f97316 0%, #fb923c 100%);
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
