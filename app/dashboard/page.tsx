@@ -154,22 +154,33 @@ function DashboardInner() {
 
   const ch = supabase
     .channel(`rt-attendance-${session_id}`)
+
+    // Listen to ANY change type (INSERT/UPDATE/DELETE)
     .on(
       "postgres_changes",
-      {
-        event: "*", // 👈 THIS IS THE FIX
-        schema: "public",
-        table: "attendance",
-        filter: `session_id=eq.${session_id}`,
-      },
-      async () => {
-        await fetchStatsAndOffices(session_id);
+      { event: "*", schema: "public", table: "attendance" },
+      async (payload) => {
+        // Robust session check (works for INSERT, UPDATE, DELETE)
+        const newSid = (payload as any)?.new?.session_id;
+        const oldSid = (payload as any)?.old?.session_id;
+
+        if (newSid === session_id || oldSid === session_id) {
+          await fetchStatsAndOffices(session_id);
+        }
       }
     )
-    .subscribe();
+
+    // Subscribe + force one refresh once the channel is actually “ready”
+    .subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        await fetchStatsAndOffices(session_id);
+      }
+    });
 
   channelRef.current = ch;
 }
+
+
 
 
   useEffect(() => {
