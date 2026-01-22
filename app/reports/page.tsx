@@ -235,6 +235,7 @@ function ReportsInner() {
     const dateTag = (selectedSession.started_at || new Date().toISOString()).slice(0, 10);
     const fname = `Attendance_Summary_${selectedSession.event_name.replace(/\s+/g, "_")}_${dateTag}.xlsx`;
 
+alert("EXPORT VERSION: ABSENT_SHEET_V1");
 
     saveAs(blob, fname);
   } finally {
