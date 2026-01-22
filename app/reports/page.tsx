@@ -182,6 +182,7 @@ function ReportsInner() {
     /* =========================
        Sheet 1: Summary
        ========================= */
+        // Sheet 1: Summary
     const s1 = wb.addWorksheet("Summary");
     s1.addRows([
       ["Event", selectedSession.event_name],
@@ -191,14 +192,22 @@ function ReportsInner() {
       ["Session ID", selectedSession.session_id],
       ["Status", selectedSession.status],
       [],
-      ["Department", "Present", "Total", "Rate (%)"],
+      ["Department", "Present", "Absent", "Total", "Attendance Rate (%)"],
     ]);
 
     sorted.forEach((d) => {
-      s1.addRow([d.department, d.dept_present, d.dept_total, d.dept_rate]);
+      const absentCount = Math.max(0, (d.dept_total ?? 0) - (d.dept_present ?? 0));
+      s1.addRow([
+        d.department,
+        d.dept_present,
+        absentCount,
+        d.dept_total,
+        d.dept_rate,
+      ]);
     });
 
     s1.columns.forEach((c) => (c.width = 24));
+
 
     /* =========================
        Sheet 2: Raw Attendance (Present)
