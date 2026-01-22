@@ -3,6 +3,14 @@ import "./globals.css";
 export const metadata = {
   title: "LGU Malungon QR Attendance Tracker",
   description: "QR Attendance Tracker",
+
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
+
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({

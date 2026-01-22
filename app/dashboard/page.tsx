@@ -148,27 +148,29 @@ function DashboardInner() {
     }
   }
 
+  
   function startRealtime(session_id: string) {
-    stopRealtime();
+  stopRealtime();
 
-    const ch = supabase
-      .channel(`rt-attendance-${session_id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "attendance",
-          filter: `session_id=eq.${session_id}`,
-        },
-        async () => {
-          await fetchStatsAndOffices(session_id);
-        }
-      )
-      .subscribe();
+  const ch = supabase
+    .channel(`rt-attendance-${session_id}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "*", // 👈 THIS IS THE FIX
+        schema: "public",
+        table: "attendance",
+        filter: `session_id=eq.${session_id}`,
+      },
+      async () => {
+        await fetchStatsAndOffices(session_id);
+      }
+    )
+    .subscribe();
 
-    channelRef.current = ch;
-  }
+  channelRef.current = ch;
+}
+
 
   useEffect(() => {
     refreshActiveSession();
