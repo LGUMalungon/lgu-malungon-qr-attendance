@@ -225,13 +225,15 @@ function ReportsInner() {
     });
     s3.columns.forEach((c) => (c.width = 26));
 
+    console.log("ABSENT COUNT:", absent.length);
+
     const buf = await wb.xlsx.writeBuffer();
     const blob = new Blob([buf], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
 
     const dateTag = (selectedSession.started_at || new Date().toISOString()).slice(0, 10);
-    const fname = `Attendance_${selectedSession.event_name.replace(/\s+/g, "_")}_${dateTag}.xlsx`;
+    const fname = `Attendance_Summary_${selectedSession.event_name.replace(/\s+/g, "_")}_${dateTag}.xlsx`;
 
     saveAs(blob, fname);
   } finally {
